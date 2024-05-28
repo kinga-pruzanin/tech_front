@@ -8,6 +8,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
+import MenuAppBar from '../app-bar/MenuAppBar';
 
 interface Column {
   id:
@@ -167,58 +168,67 @@ export default function AllBooks() {
   };
 
   return (
-    <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-      <h1>All Books</h1>
-      <TableContainer sx={{ maxHeight: 440 }}>
-        <Table stickyHeader aria-label="sticky table">
-          <TableHead>
-            <TableRow>
-              {columns.map((column) => (
-                <TableCell
-                  key={column.id}
-                  align={column.align}
-                  style={{
-                    minWidth: column.minWidth,
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                  }}
-                >
-                  {column.label}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {books
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((book) => {
-                return (
-                  <TableRow hover role="checkbox" tabIndex={-1} key={book.isbn}>
-                    {columns.map((column) => {
-                      const value = book[column.id];
-                      return (
-                        <TableCell key={column.id} align={column.align}>
-                          {column.format && typeof value === 'number'
-                            ? column.format(value)
-                            : value}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-              })}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <TablePagination
-        rowsPerPageOptions={[10, 25, 100]}
-        component="div"
-        count={books.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-      />
-    </Paper>
+    <div>
+      <MenuAppBar title={'Books'} />
+
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+        <h1>All Books</h1>
+        <TableContainer sx={{ maxHeight: 440 }}>
+          <Table stickyHeader aria-label="sticky table">
+            <TableHead>
+              <TableRow>
+                {columns.map((column) => (
+                  <TableCell
+                    key={column.id}
+                    align={column.align}
+                    style={{
+                      minWidth: column.minWidth,
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {column.label}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {books
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((book) => {
+                  return (
+                    <TableRow
+                      hover
+                      role="checkbox"
+                      tabIndex={-1}
+                      key={book.isbn}
+                    >
+                      {columns.map((column) => {
+                        const value = book[column.id];
+                        return (
+                          <TableCell key={column.id} align={column.align}>
+                            {column.format && typeof value === 'number'
+                              ? column.format(value)
+                              : value}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  );
+                })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[10, 25, 100]}
+          component="div"
+          count={books.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </Paper>
+    </div>
   );
 }

@@ -63,7 +63,7 @@ export default function AllBooks() {
 
   return (
     <div>
-      <MenuAppBar title={'Books'} />
+      <MenuAppBar title={'all books'} />
 
       <Paper sx={{ width: '100%', overflow: 'hidden' }}>
         <h1>All Books</h1>

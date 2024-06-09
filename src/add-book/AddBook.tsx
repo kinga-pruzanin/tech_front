@@ -70,7 +70,7 @@ export default function AddBook() {
 
   return (
     <div>
-      <MenuAppBar title={'Add book'} />
+      <MenuAppBar title={'add book'} />
       <div
         style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}
       >

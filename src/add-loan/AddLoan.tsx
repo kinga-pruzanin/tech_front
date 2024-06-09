@@ -45,7 +45,7 @@ export default function AddLoan() {
 
   return (
     <div>
-      <MenuAppBar title={'Add loan'} />
+      <MenuAppBar title={'add rental'} />
       <div
         style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}
       >

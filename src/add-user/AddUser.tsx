@@ -84,7 +84,7 @@ export default function AddUser() {
 
   return (
     <div>
-      <MenuAppBar title={'Add user'} />
+      <MenuAppBar title={'add user'} />
       <div
         style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}
       >

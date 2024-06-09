@@ -6,7 +6,7 @@ import { useApi } from '../api/ApiProvider';
 function HomePage() {
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <MenuAppBar title={'Main page'} />
+      <MenuAppBar title={'main page'} />
       <Box
         sx={{
           display: 'flex',

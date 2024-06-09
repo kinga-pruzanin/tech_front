@@ -11,22 +11,26 @@ import ApiProvider from './api/ApiProvider';
 import AddBook from './add-book/AddBook';
 import AddLoan from './add-loan/AddLoan';
 import AddUser from './add-user/AddUser';
+import { I18nextProvider } from 'react-i18next';
+import i18n from 'i18next';
 
 function App() {
   return (
     <BrowserRouter>
-      <ApiProvider>
-        <Routes>
-          <Route path="/" element={<Navigate to="/login" />} />
-          <Route path="/login" element={<LoginForm />} />
-          <Route path="/home" element={<Homepage />} />
-          <Route path="/home/books" element={<AllBooks />} />
-          <Route path="/home/loans" element={<Loans />} />
-          <Route path="/home/books/add" element={<AddBook />} />
-          <Route path="/home/loans/add" element={<AddLoan />} />
-          <Route path="/home/users/add" element={<AddUser />} />
-        </Routes>
-      </ApiProvider>
+      <I18nextProvider i18n={i18n}>
+        <ApiProvider>
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" />} />
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/home" element={<Homepage />} />
+            <Route path="/home/books" element={<AllBooks />} />
+            <Route path="/home/loans" element={<Loans />} />
+            <Route path="/home/books/add" element={<AddBook />} />
+            <Route path="/home/loans/add" element={<AddLoan />} />
+            <Route path="/home/users/add" element={<AddUser />} />
+          </Routes>
+        </ApiProvider>
+      </I18nextProvider>
     </BrowserRouter>
   );
 }

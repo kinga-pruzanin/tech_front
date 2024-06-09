@@ -9,15 +9,10 @@ import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import MenuAppBar from '../app-bar/MenuAppBar';
+import { BookDto } from '../api/dto/book.dto';
 
 interface Column {
-  id:
-    | 'isbn'
-    | 'title'
-    | 'author'
-    | 'publisher'
-    | 'publishYear'
-    | 'availableCopies';
+  id: keyof BookDto;
   label: string;
   minWidth?: number;
   align?: 'right';

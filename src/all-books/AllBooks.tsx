@@ -10,6 +10,9 @@ import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import MenuAppBar from '../app-bar/MenuAppBar';
 import { BookDto } from '../api/dto/book.dto';
+import { useApi } from '../api/ApiProvider';
+import { Button } from '@mui/material';
+import { Link } from 'react-router-dom';
 
 interface Column {
   id: keyof BookDto;
@@ -28,126 +31,22 @@ const columns: readonly Column[] = [
   { id: 'availableCopies', label: 'Available copies', minWidth: 170 },
 ];
 
-interface Book {
-  isbn: string;
-  title: string;
-  author: string;
-  publisher: string;
-  publishYear: number;
-  availableCopies: number;
-}
-
-function createBook(
-  isbn: string,
-  title: string,
-  author: string,
-  publisher: string,
-  publishYear: number,
-  availableCopies: number,
-): Book {
-  return { isbn, title, author, publisher, publishYear, availableCopies };
-}
-
-const books: Book[] = [
-  createBook(
-    '9783161484100',
-    'Crime and Punishment',
-    'Fyodor Dostoevsky',
-    'The Russian Messenger',
-    1866,
-    500,
-  ),
-  createBook(
-    '9780684800011',
-    'To Kill a Mockingbird',
-    'Harper Lee',
-    'J. B. Lippincott & Co.',
-    1960,
-    700,
-  ),
-  createBook(
-    '9780140449242',
-    'The Brothers Karamazov',
-    'Fyodor Dostoevsky',
-    'The Russian Messenger',
-    1880,
-    450,
-  ),
-  createBook(
-    '9780743273565',
-    'The Great Gatsby',
-    'F. Scott Fitzgerald',
-    "Charles Scribner's Sons",
-    1925,
-    600,
-  ),
-  createBook(
-    '9780451524935',
-    '1984',
-    'George Orwell',
-    'Secker & Warburg',
-    1949,
-    350,
-  ),
-  createBook(
-    '9780385492084',
-    'The Catcher in the Rye',
-    'J. D. Salinger',
-    'Little, Brown and Company',
-    1951,
-    420,
-  ),
-  createBook(
-    '9780061120084',
-    'One Hundred Years of Solitude',
-    'Gabriel García Márquez',
-    'Harper & Row',
-    1967,
-    550,
-  ),
-  createBook(
-    '9780307594000',
-    'The Girl with the Dragon Tattoo',
-    'Stieg Larsson',
-    'Norstedts Förlag',
-    2005,
-    480,
-  ),
-  createBook(
-    '9780141182551',
-    "One Flew Over the Cuckoo's Nest",
-    'Ken Kesey',
-    'Viking Press',
-    1962,
-    400,
-  ),
-  createBook(
-    '9780679764029',
-    "Midnight's Children",
-    'Salman Rushdie',
-    'Jonathan Cape',
-    1981,
-    510,
-  ),
-  createBook(
-    '9780307743657',
-    'The Help',
-    'Kathryn Stockett',
-    'Amy Einhorn Books',
-    2009,
-    480,
-  ),
-  createBook(
-    '9780099549482',
-    'Norwegian Wood',
-    'Haruki Murakami',
-    'Kodansha',
-    1987,
-    420,
-  ),
-];
-
 export default function AllBooks() {
+  const apiClient = useApi();
+
+  const [books, setBooks] = React.useState<BookDto[]>([]);
+
+  React.useEffect(() => {
+    apiClient.getAllBooks().then((response) => {
+      if (response.success && response.data !== null) {
+        const booksArray = Array.isArray(response.data)
+          ? response.data
+          : [response.data];
+        setBooks(booksArray);
+      }
+    });
+  }, [apiClient]);
+
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
@@ -224,6 +123,18 @@ export default function AllBooks() {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Paper>
+      <div style={{ textAlign: 'center', marginTop: '20px' }}>
+        {' '}
+        <Button
+          variant="contained"
+          color="primary"
+          component={Link}
+          to="add"
+          sx={{ m: 1 }}
+        >
+          Add Book
+        </Button>
+      </div>
     </div>
   );
 }

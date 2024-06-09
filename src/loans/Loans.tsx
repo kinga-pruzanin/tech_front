@@ -9,6 +9,10 @@ import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import MenuAppBar from '../app-bar/MenuAppBar';
+import { useApi } from '../api/ApiProvider';
+import { LoanDto } from '../api/dto/loan.dto';
+import { Button } from '@mui/material';
+import { Link } from 'react-router-dom';
 
 interface Column {
   id: 'loanDate' | 'loanEnd' | 'returnDate' | 'user' | 'book';
@@ -26,134 +30,31 @@ const columns: readonly Column[] = [
   { id: 'book', label: 'Book title', minWidth: 170 },
 ];
 
-interface Loan {
-  loanDate: Date;
-  loanEnd: Date;
-  returnDate: Date;
-  user: string;
-  book: string;
-}
-
-function createLoan(
-  loanDate: Date,
-  loanEnd: Date,
-  returnDate: Date,
-  user: string,
-  book: string,
-): Loan {
-  return { loanDate, loanEnd, returnDate, user, book };
-}
-
-const formatDate = (date: Date): string => {
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}.${month}.${year}`;
+const formatDate = (dateArray: number[] | null): string => {
+  if (!dateArray || dateArray.length !== 3) {
+    return ''; // Invalid date array format or null value
+  }
+  const [year, month, day] = dateArray;
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString('en-GB');
 };
 
-const loans: Loan[] = [
-  createLoan(
-    new Date(2024, 1, 1),
-    new Date(2024, 1, 10),
-    new Date(2024, 1, 15),
-    'John Doe',
-    'Crime and Punishment',
-  ),
-  createLoan(
-    new Date(2024, 2, 5),
-    new Date(2024, 2, 15),
-    new Date(2024, 2, 20),
-    'Alice Smith',
-    'To Kill a Mockingbird',
-  ),
-  createLoan(
-    new Date(2024, 3, 10),
-    new Date(2024, 3, 20),
-    new Date(2024, 3, 25),
-    'Bob Johnson',
-    'The Great Gatsby',
-  ),
-  // Add more loan objects...
-  createLoan(
-    new Date(2024, 4, 1),
-    new Date(2024, 4, 10),
-    new Date(2024, 4, 15),
-    'Emma Watson',
-    'The Catcher in the Rye',
-  ),
-  createLoan(
-    new Date(2024, 5, 5),
-    new Date(2024, 5, 15),
-    new Date(2024, 5, 20),
-    'Michael Jordan',
-    'One Hundred Years of Solitude',
-  ),
-  createLoan(
-    new Date(2024, 6, 10),
-    new Date(2024, 6, 20),
-    new Date(2024, 6, 25),
-    'Jennifer Lopez',
-    'The Girl with the Dragon Tattoo',
-  ),
-  createLoan(
-    new Date(2024, 7, 1),
-    new Date(2024, 7, 10),
-    new Date(2024, 7, 15),
-    'Tom Cruise',
-    "One Flew Over the Cuckoo's Nest",
-  ),
-  createLoan(
-    new Date(2024, 8, 5),
-    new Date(2024, 8, 15),
-    new Date(2024, 8, 20),
-    'Scarlett Johansson',
-    "Midnight's Children",
-  ),
-  createLoan(
-    new Date(2024, 9, 10),
-    new Date(2024, 9, 20),
-    new Date(2024, 9, 25),
-    'Leonardo DiCaprio',
-    'The Help',
-  ),
-  createLoan(
-    new Date(2024, 10, 1),
-    new Date(2024, 10, 10),
-    new Date(2024, 10, 15),
-    'Angelina Jolie',
-    'Norwegian Wood',
-  ),
-  createLoan(
-    new Date(2024, 11, 5),
-    new Date(2024, 11, 15),
-    new Date(2024, 11, 20),
-    'Brad Pitt',
-    'Dune',
-  ),
-  createLoan(
-    new Date(2024, 12, 10),
-    new Date(2024, 12, 20),
-    new Date(2024, 12, 25),
-    'Johnny Depp',
-    'Pride and Prejudice',
-  ),
-  createLoan(
-    new Date(2025, 1, 1),
-    new Date(2025, 1, 10),
-    new Date(2025, 1, 15),
-    'Natalie Portman',
-    "Harry Potter and the Philosopher's Stone",
-  ),
-  createLoan(
-    new Date(2025, 2, 5),
-    new Date(2025, 2, 15),
-    new Date(2025, 2, 20),
-    'Robert Downey Jr.',
-    'The Hobbit',
-  ),
-];
-
 export default function Loans() {
+  const apiClient = useApi();
+
+  const [loans, setLoans] = React.useState<LoanDto[]>([]);
+
+  React.useEffect(() => {
+    apiClient.getAllLoans().then((response) => {
+      if (response.success && response.data !== null) {
+        const loansArray = Array.isArray(response.data)
+          ? response.data
+          : [response.data];
+        setLoans(loansArray);
+      }
+    });
+  }, [apiClient]);
+
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
@@ -199,7 +100,14 @@ export default function Loans() {
                   return (
                     <TableRow hover role="checkbox" tabIndex={-1} key={index}>
                       {columns.map((column) => {
-                        const value = loan[column.id];
+                        let value: any;
+                        if (column.id === 'user') {
+                          value = loan.user?.fullUsername;
+                        } else if (column.id === 'book') {
+                          value = loan.book?.title;
+                        } else {
+                          value = loan[column.id];
+                        }
                         return (
                           <TableCell
                             key={column.id}
@@ -229,6 +137,18 @@ export default function Loans() {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Paper>
+      <div style={{ textAlign: 'center', marginTop: '20px' }}>
+        {' '}
+        <Button
+          variant="contained"
+          color="primary"
+          component={Link}
+          to="add"
+          sx={{ m: 1 }}
+        >
+          Add loan
+        </Button>
+      </div>
     </div>
   );
 }

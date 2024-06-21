@@ -87,6 +87,74 @@ export class LibraryClient {
     }
   }
 
+  public async getRole() {
+    try {
+      const response = await this.client.get('/user/me/role');
+
+      return {
+        success: true,
+        data: response.data,
+        statusCode: response.status,
+      };
+    } catch (error) {
+      const axiosError = error as AxiosError<Error>;
+
+      return {
+        success: false,
+        data: null,
+        statusCode: axiosError.response?.status || 0,
+      };
+    }
+  }
+
+  public async deleteBook(
+    isbn: string,
+  ): Promise<{ data: null; success: boolean; statusCode: number }> {
+    try {
+      const response = await this.client.delete(`/book/delete/${isbn}`);
+
+      return {
+        success: true,
+        data: null,
+        statusCode: response.status,
+      };
+    } catch (error) {
+      const axiosError = error as AxiosError<Error>;
+
+      return {
+        success: false,
+        data: null,
+        statusCode: axiosError.response?.status || 0,
+      };
+    }
+  }
+
+  public async updateBook(
+    isbn: string,
+    updatedBookData: Partial<BookDto>,
+  ): Promise<ClientResponse<BookDto | null>> {
+    try {
+      const response = await this.client.put(
+        `/book/update/${isbn}`,
+        updatedBookData,
+      );
+
+      return {
+        success: true,
+        data: response.data,
+        statusCode: response.status,
+      };
+    } catch (error) {
+      const axiosError = error as AxiosError<Error>;
+
+      return {
+        success: false,
+        data: null,
+        statusCode: axiosError.response?.status || 0,
+      };
+    }
+  }
+
   public async addBook(book: BookDto): Promise<ClientResponse<BookDto | null>> {
     try {
       const response = await this.client.post('/book/add', book);

@@ -6,21 +6,21 @@ import { useApi } from '../api/ApiProvider';
 import './AddBook.css';
 
 export default function AddBook() {
+  const [id] = useState(0);
   const [isbn, setIsbn] = useState('');
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [publisher, setPublisher] = useState('');
   const [publishYear, setPublishYear] = useState('');
   const [availableCopies, setAvailableCopies] = useState('');
+  const [deleted] = useState(false);
   const navigate = useNavigate();
   const apiClient = useApi();
 
   const handleAddBook = async () => {
-    // Konwertuj wartości pól na liczby
     const parsedPublishYear = parseInt(publishYear);
     const parsedAvailableCopies = parseInt(availableCopies);
 
-    // Sprawdź, czy konwersja zakończyła się sukcesem
     if (isNaN(parsedPublishYear) || isNaN(parsedAvailableCopies)) {
       console.error(
         'Invalid numeric values for publishYear or availableCopies',
@@ -28,14 +28,15 @@ export default function AddBook() {
       return;
     }
 
-    // Wywołaj funkcję apiClient.addBook() z przekonwertowanymi wartościami
     const response = await apiClient.addBook({
+      id,
       isbn,
       title,
       author,
       publisher,
       publishYear: parsedPublishYear,
       availableCopies: parsedAvailableCopies,
+      deleted,
     });
 
     console.log('Adding book:', {
@@ -49,21 +50,17 @@ export default function AddBook() {
 
     try {
       if (response.success) {
-        // Czyszczenie pól po dodaniu książki
         setIsbn('');
         setTitle('');
         setAuthor('');
         setPublisher('');
         setPublishYear('');
         setAvailableCopies('');
-        // Nawigacja do poprzedniej strony
         navigate(-1);
       } else {
-        // Obsługa błędów, np. wyświetlenie komunikatu użytkownikowi
         console.error('Failed to add book:', response.statusCode);
       }
     } catch (error) {
-      // Obsługa błędów związanych z wywołaniem API
       console.error('Error adding book:', error);
     }
   };

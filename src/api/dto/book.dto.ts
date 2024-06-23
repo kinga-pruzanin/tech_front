@@ -1,5 +1,5 @@
 export class BookDto {
-  id: number | undefined;
+  id?: string | number;
   isbn: string | undefined;
   title: string | undefined;
   author: string | undefined;

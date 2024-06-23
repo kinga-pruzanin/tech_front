@@ -1,31 +1,27 @@
 import * as React from 'react';
-import Paper from '@mui/material/Paper';
-import {
-  DataGrid,
-  GridActionsCellItem,
-  GridCellParams,
-  GridColDef,
-  GridEventListener,
-  GridRowEditStopReasons,
-  GridRowId,
-  GridRowModel,
-  GridRowModes,
-  GridRowModesModel,
-  GridRowsProp,
-  GridSlots,
-  GridToolbarContainer,
-} from '@mui/x-data-grid';
-import { randomId } from '@mui/x-data-grid-generator';
-import MenuAppBar from '../app-bar/MenuAppBar';
-import { BookDto } from '../api/dto/book.dto';
-import { useApi } from '../api/ApiProvider';
-import { Button } from '@mui/material';
-import { Link } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Close';
+import {
+  GridRowsProp,
+  GridRowModesModel,
+  GridRowModes,
+  DataGrid,
+  GridColDef,
+  GridToolbarContainer,
+  GridActionsCellItem,
+  GridEventListener,
+  GridRowId,
+  GridRowEditStopReasons,
+  GridSlots,
+} from '@mui/x-data-grid';
+import { randomId } from '@mui/x-data-grid-generator';
+import { useApi } from '../api/ApiProvider';
+import { BookDto } from '../api/dto/book.dto';
 
 interface EditToolbarProps {
   setRows: (newRows: (oldRows: GridRowsProp) => GridRowsProp) => void;
@@ -47,14 +43,15 @@ function EditToolbar(props: EditToolbarProps) {
         title: '',
         author: '',
         publisher: '',
-        publishYear: '',
+        publishYear: 0,
         availableCopies: 0,
+        deleted: false,
         isNew: true,
       },
     ]);
     setRowModesModel((oldModel) => ({
       ...oldModel,
-      [id]: { mode: GridRowModes.Edit, fieldToFocus: 'title' },
+      [id]: { mode: GridRowModes.Edit, fieldToFocus: 'id' },
     }));
   };
 
@@ -68,21 +65,11 @@ function EditToolbar(props: EditToolbarProps) {
 }
 
 export default function AllBooks() {
-  const apiClient = useApi();
-
-  const [books, setBooks] = React.useState<BookDto[]>([]);
   const [rowModesModel, setRowModesModel] = React.useState<GridRowModesModel>(
     {},
   );
-
-  const handleRowEditStop: GridEventListener<'rowEditStop'> = (
-    params,
-    event,
-  ) => {
-    if (params.reason === GridRowEditStopReasons.rowFocusOut) {
-      event.defaultMuiPrevented = true;
-    }
-  };
+  const apiClient = useApi();
+  const [rows, setRows] = React.useState<BookDto[]>([]);
 
   React.useEffect(() => {
     fetchBooks();
@@ -98,35 +85,63 @@ export default function AllBooks() {
           ...book,
           id: book.isbn,
         }));
-        setBooks(booksWithId);
+        setRows(booksWithId);
       }
     });
+  };
+
+  const handleRowEditStop: GridEventListener<'rowEditStop'> = (
+    params,
+    event,
+  ) => {
+    if (params.reason === GridRowEditStopReasons.rowFocusOut) {
+      event.defaultMuiPrevented = true;
+    }
   };
 
   const handleEditClick = (id: GridRowId) => () => {
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
   };
 
-  const handleSaveClick = (book: BookDto) => {
-    if (book.isbn !== undefined) {
-      const { isbn, title, author, publisher, publishYear, availableCopies } =
-        book;
+  const handleSaveClick = async (id: GridRowId) => {
+    const book = rows.find((row) => row.id === id);
 
-      apiClient
-        .updateBook(isbn, {
-          title,
-          author,
-          publisher,
-          publishYear,
-          availableCopies,
-        })
-        .then((response) => {
-          if (response.success) {
-            fetchBooks();
-          } else {
-            console.error('Failed to update book:', response.statusCode);
-          }
-        });
+    if (!book) return;
+
+    // Process the row update
+    await processRowUpdate(book);
+
+    setRowModesModel({
+      ...rowModesModel,
+      [id]: { mode: GridRowModes.View },
+    });
+  };
+
+  const handleDeleteClick = (id: GridRowId) => async () => {
+    const bookToDelete = rows.find((row) => row.id === id);
+
+    if (!bookToDelete) return;
+
+    try {
+      const response = await apiClient.deleteBook(bookToDelete.isbn!);
+      console.log('Delete book response:', response);
+
+      if (response.success) {
+        if (response.statusCode === 201) {
+          const updatedRows = rows.map((row) =>
+            row.id === id ? { ...row, deleted: true } : row,
+          );
+          setRows(updatedRows);
+          console.log('Successfully marked book as deleted:', bookToDelete);
+        } else {
+          setRows(rows.filter((row) => row.id !== id));
+          console.log('Successfully deleted book:', bookToDelete);
+        }
+      } else {
+        console.log('Failed to delete book:', bookToDelete);
+      }
+    } catch (error) {
+      console.error('Error deleting book:', error);
     }
   };
 
@@ -136,57 +151,84 @@ export default function AllBooks() {
       [id]: { mode: GridRowModes.View, ignoreModifications: true },
     });
 
-    const editedRow = books.find((row) => row.id === id);
-    if (editedRow && editedRow.isNew) {
-      setBooks(books.filter((row) => row.id !== id));
+    const editedRow = rows.find((row) => row.id === id);
+    if (editedRow!.isNew) {
+      setRows(rows.filter((row) => row.id !== id));
     }
   };
 
-  const processRowUpdate = (newRow: GridRowModel) => {
-    const {
-      id,
-      isbn,
-      title,
-      author,
-      publisher,
-      publishYear,
-      availableCopies,
-      deleted,
-    } = newRow;
-    const updatedRow: BookDto = {
-      id,
-      isbn,
-      title,
-      author,
-      publisher,
-      publishYear,
-      availableCopies,
-      deleted,
-    };
+  const processRowUpdate = async (newRow: BookDto) => {
+    const updatedRow = { ...newRow, isNew: false };
+    let response;
 
-    if ('isNew' in newRow) {
-      updatedRow.isNew = false;
+    // Log newRow data before validation
+    console.log('Row before validation:', newRow);
+
+    // Validate required fields
+    if (!newRow.isbn || !newRow.title || !newRow.author) {
+      console.error('ISBN, title, and author are required fields.');
+      return newRow; // Return the original row to prevent losing data
     }
 
-    setBooks(books.map((book) => (book.id === newRow.id ? updatedRow : book)));
-    return updatedRow;
+    try {
+      if (newRow.isNew) {
+        console.log('Adding new book:', newRow);
+        response = await apiClient.addBook({
+          id: undefined,
+          isbn: newRow.isbn,
+          title: newRow.title,
+          author: newRow.author,
+          publisher: newRow.publisher,
+          publishYear: newRow.publishYear,
+          availableCopies: newRow.availableCopies,
+          deleted: newRow.deleted || false,
+        });
+
+        console.log('Adding book response:', response);
+
+        if (response.success) {
+          updatedRow.id = Number(response.data?.id) || newRow.isbn;
+          console.log('Successfully added book:', updatedRow);
+        } else {
+          console.log('Failed to add book:', response);
+        }
+      } else {
+        const updatedBook: Partial<BookDto> = {
+          id: newRow.id,
+          isbn: newRow.isbn || '',
+          title: newRow.title || '',
+          author: newRow.author || '',
+          publisher: newRow.publisher || '',
+          publishYear: newRow.publishYear,
+          availableCopies: newRow.availableCopies,
+          deleted: newRow.deleted || false,
+          isNew: newRow.isNew,
+        };
+
+        console.log('Updating book:', updatedBook);
+        response = await apiClient.updateBook(newRow.isbn!, updatedBook);
+        console.log('Update book response:', response);
+
+        if (response.success) {
+          console.log('Successfully updated book:', updatedRow);
+        } else {
+          console.log('Failed to update book:', response);
+        }
+      }
+
+      setRows(rows.map((row) => (row.id === newRow.id ? updatedRow : row)));
+      return updatedRow;
+    } catch (error) {
+      console.error('Error processing book:', error);
+      return newRow; // Return the original row if there was an error
+    }
   };
 
   const handleRowModesModelChange = (newRowModesModel: GridRowModesModel) => {
     setRowModesModel(newRowModesModel);
   };
 
-  const handleDeleteClick = (isbn: string) => {
-    apiClient.deleteBook(isbn).then((response) => {
-      if (response.success) {
-        fetchBooks();
-      } else {
-        console.error('Failed to delete book:', response.statusCode);
-      }
-    });
-  };
-
-  const columnsWithActions: GridColDef[] = [
+  const columns: GridColDef[] = [
     {
       field: 'isbn',
       headerName: 'ISBN',
@@ -194,7 +236,7 @@ export default function AllBooks() {
       width: 80,
       align: 'left',
       headerAlign: 'center',
-      editable: false,
+      editable: true,
     },
     {
       field: 'title',
@@ -226,7 +268,16 @@ export default function AllBooks() {
     {
       field: 'publishYear',
       headerName: 'Publish year',
-      type: 'string',
+      type: 'number',
+      width: 80,
+      align: 'left',
+      headerAlign: 'center',
+      editable: true,
+    },
+    {
+      field: 'availableCopies',
+      headerName: 'Available copies',
+      type: 'number',
       width: 80,
       align: 'left',
       headerAlign: 'center',
@@ -247,9 +298,8 @@ export default function AllBooks() {
       headerName: 'Actions',
       width: 100,
       cellClassName: 'actions',
-      getActions: (params) => {
-        const isInEditMode =
-          rowModesModel[params.id]?.mode === GridRowModes.Edit;
+      getActions: ({ id }) => {
+        const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
 
         if (isInEditMode) {
           return [
@@ -259,13 +309,13 @@ export default function AllBooks() {
               sx={{
                 color: 'primary.main',
               }}
-              onClick={() => handleSaveClick(params.row)}
+              onClick={(e: any) => handleSaveClick(id)}
             />,
             <GridActionsCellItem
               icon={<CancelIcon />}
               label="Cancel"
               className="textPrimary"
-              onClick={handleCancelClick(params.id)}
+              onClick={handleCancelClick(id)}
               color="inherit"
             />,
           ];
@@ -276,13 +326,13 @@ export default function AllBooks() {
             icon={<EditIcon />}
             label="Edit"
             className="textPrimary"
-            onClick={() => handleEditClick(params.id)}
+            onClick={handleEditClick(id)}
             color="inherit"
           />,
           <GridActionsCellItem
             icon={<DeleteIcon />}
             label="Delete"
-            onClick={() => handleDeleteClick(params.row.isbn)}
+            onClick={handleDeleteClick(id)}
             color="inherit"
           />,
         ];
@@ -291,406 +341,33 @@ export default function AllBooks() {
   ];
 
   return (
-    <div>
-      <MenuAppBar title={'all books'} />
-
-      <Paper sx={{ height: 500, width: '100%', marginBottom: '20px' }}>
-        <DataGrid
-          rows={books}
-          columns={columnsWithActions}
-          editMode="row"
-          rowModesModel={rowModesModel}
-          onRowModesModelChange={handleRowModesModelChange}
-          onRowEditStop={handleRowEditStop}
-          processRowUpdate={processRowUpdate}
-          slots={{
-            toolbar: EditToolbar as GridSlots['toolbar'],
-          }}
-          slotProps={{
-            toolbar: { setRows: setBooks, setRowModesModel },
-          }}
-        />
-      </Paper>
-
-      <div style={{ textAlign: 'center' }}>
-        <Button
-          variant="contained"
-          color="primary"
-          component={Link}
-          to="add"
-          startIcon={<AddIcon />}
-          sx={{ m: 1 }}
-        >
-          Add Book
-        </Button>
-      </div>
-    </div>
+    <Box
+      sx={{
+        height: 500,
+        width: '100%',
+        '& .actions': {
+          color: 'text.secondary',
+        },
+        '& .textPrimary': {
+          color: 'text.primary',
+        },
+      }}
+    >
+      <DataGrid
+        rows={rows}
+        columns={columns}
+        editMode="row"
+        rowModesModel={rowModesModel}
+        onRowModesModelChange={handleRowModesModelChange}
+        onRowEditStop={handleRowEditStop}
+        processRowUpdate={processRowUpdate}
+        slots={{
+          toolbar: EditToolbar as GridSlots['toolbar'],
+        }}
+        slotProps={{
+          toolbar: { setRows, setRowModesModel },
+        }}
+      />
+    </Box>
   );
 }
-
-// import * as React from 'react';
-// import Paper from '@mui/material/Paper';
-// import {
-//   DataGrid,
-//   GridActionsCellItem,
-//   GridCellParams,
-//   GridColDef,
-//   GridEventListener,
-//   GridRowEditStopReasons,
-//   GridRowId,
-//   GridRowModel,
-//   GridRowModes,
-//   GridRowModesModel,
-//   GridRowsProp,
-//   GridSlots,
-//   GridToolbarContainer,
-// } from '@mui/x-data-grid';
-// import {
-//   randomCreatedDate,
-//   randomTraderName,
-//   randomId,
-//   randomArrayItem,
-// } from '@mui/x-data-grid-generator';
-// import MenuAppBar from '../app-bar/MenuAppBar';
-// import { BookDto } from '../api/dto/book.dto';
-// import { useApi } from '../api/ApiProvider';
-// import { Button, IconButton } from '@mui/material';
-// import { Link } from 'react-router-dom';
-// import AddIcon from '@mui/icons-material/Add';
-// import EditIcon from '@mui/icons-material/Edit';
-// import DeleteIcon from '@mui/icons-material/Delete';
-// import SaveIcon from '@mui/icons-material/Save';
-// import CancelIcon from '@mui/icons-material/Close';
-//
-// const columns: GridColDef[] = [
-//   { field: 'isbn', headerName: 'ISBN', width: 170 },
-//   { field: 'title', headerName: 'Title', width: 200 },
-//   { field: 'author', headerName: 'Author', width: 170 },
-//   { field: 'publisher', headerName: 'Publisher', width: 170 },
-//   { field: 'publishYear', headerName: 'Publication year', width: 170 },
-//   { field: 'availableCopies', headerName: 'Available copies', width: 170 },
-// ];
-//
-// interface EditToolbarProps {
-//   setRows: (newRows: (oldRows: GridRowsProp) => GridRowsProp) => void;
-//   setRowModesModel: (
-//     newModel: (oldModel: GridRowModesModel) => GridRowModesModel,
-//   ) => void;
-// }
-//
-// function EditToolbar(props: EditToolbarProps) {
-//   const { setRows, setRowModesModel } = props;
-//
-//   const handleClick = () => {
-//     const id = randomId();
-//     setRows((oldRows) => [
-//       ...oldRows,
-//       {
-//         id,
-//         isbn: '',
-//         title: '',
-//         author: '',
-//         publisher: '',
-//         publishYear: '',
-//         availableCopies: 0,
-//         isNew: true,
-//       },
-//     ]);
-//     setRowModesModel((oldModel) => ({
-//       ...oldModel,
-//       [id]: { mode: GridRowModes.Edit, fieldToFocus: 'title' }, // Domyślnie ustaw pole do edycji na 'title'
-//     }));
-//   };
-//
-//   return (
-//     <GridToolbarContainer>
-//       <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
-//         Add record
-//       </Button>
-//     </GridToolbarContainer>
-//   );
-// }
-//
-// export default function AllBooks() {
-//   const apiClient = useApi();
-//
-//   const [books, setBooks] = React.useState<BookDto[]>([]);
-//   const [selectedBook, setSelectedBook] = React.useState<BookDto | null>(null);
-//   const [editRowIndex, setEditRowIndex] = React.useState<number | null>(null);
-//   const [rowModesModel, setRowModesModel] = React.useState<GridRowModesModel>(
-//     {},
-//   );
-//
-//   const handleRowEditStop: GridEventListener<'rowEditStop'> = (
-//     params,
-//     event,
-//   ) => {
-//     if (params.reason === GridRowEditStopReasons.rowFocusOut) {
-//       event.defaultMuiPrevented = true;
-//     }
-//   };
-//
-//   React.useEffect(() => {
-//     fetchBooks();
-//   }, []);
-//
-//   const fetchBooks = () => {
-//     apiClient.getAllBooks().then((response) => {
-//       if (response.success && response.data !== null) {
-//         const booksArray = Array.isArray(response.data)
-//           ? response.data
-//           : [response.data];
-//         const booksWithId = booksArray.map((book) => ({
-//           ...book,
-//           id: book.isbn,
-//         }));
-//         setBooks(booksWithId);
-//       }
-//     });
-//   };
-//
-//   const handleEditClick = (id: GridRowId) => () => {
-//     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
-//   };
-//
-//   const handleSaveClick = (book: BookDto) => {
-//     if (book.isbn !== undefined) {
-//       const { isbn, title, author, publisher, publishYear, availableCopies } =
-//         book;
-//
-//       apiClient
-//         .updateBook(isbn, {
-//           title,
-//           author,
-//           publisher,
-//           publishYear,
-//           availableCopies,
-//         })
-//         .then((response) => {
-//           if (response.success) {
-//             fetchBooks();
-//           } else {
-//             console.error('Failed to update book:', response.statusCode);
-//           }
-//         });
-//     }
-//   };
-//
-//   const handleCancelClick = (id: GridRowId) => () => {
-//     setRowModesModel({
-//       ...rowModesModel,
-//       [id]: { mode: GridRowModes.View, ignoreModifications: true },
-//     });
-//
-//     const editedRow = books.find((row) => row.id === id);
-//     if (editedRow && editedRow.isNew) {
-//       setBooks(books.filter((row) => row.id !== id));
-//     }
-//   };
-//
-//   const processRowUpdate = (newRow: GridRowModel) => {
-//     const {
-//       id,
-//       isbn,
-//       title,
-//       author,
-//       publisher,
-//       publishYear,
-//       availableCopies,
-//       deleted,
-//     } = newRow;
-//     const updatedRow: BookDto = {
-//       id,
-//       isbn,
-//       title,
-//       author,
-//       publisher,
-//       publishYear,
-//       availableCopies,
-//       deleted,
-//     };
-//
-//     if ('isNew' in newRow) {
-//       updatedRow.isNew = false;
-//     }
-//
-//     setBooks(books.map((book) => (book.id === newRow.id ? updatedRow : book)));
-//     return updatedRow;
-//   };
-//
-//   const handleRowModesModelChange = (newRowModesModel: GridRowModesModel) => {
-//     setRowModesModel(newRowModesModel);
-//   };
-//
-//   const handleDeleteClick = (isbn: string) => {
-//     apiClient.deleteBook(isbn).then((response) => {
-//       if (response.success) {
-//         fetchBooks();
-//       } else {
-//         console.error('Failed to delete book:', response.statusCode);
-//       }
-//     });
-//   };
-//
-//   const columnsWithActions: GridColDef[] = [
-//     {
-//       field: 'isbn',
-//       headerName: 'ISBN',
-//       type: 'string',
-//       width: 80,
-//       align: 'left',
-//       headerAlign: 'center',
-//       editable: false,
-//     },
-//     {
-//       field: 'title',
-//       headerName: 'Title',
-//       type: 'string',
-//       width: 80,
-//       align: 'left',
-//       headerAlign: 'center',
-//       editable: true,
-//     },
-//     {
-//       field: 'author',
-//       headerName: 'Author',
-//       type: 'string',
-//       width: 80,
-//       align: 'left',
-//       headerAlign: 'center',
-//       editable: true,
-//     },
-//     {
-//       field: 'publisher',
-//       headerName: 'Publisher',
-//       type: 'string',
-//       width: 80,
-//       align: 'left',
-//       headerAlign: 'center',
-//       editable: true,
-//     },
-//     {
-//       field: 'publishYear',
-//       headerName: 'Publish year',
-//       type: 'string',
-//       width: 80,
-//       align: 'left',
-//       headerAlign: 'center',
-//       editable: true,
-//     },
-//     {
-//       field: 'deleted',
-//       headerName: 'No longer available',
-//       type: 'string',
-//       width: 80,
-//       align: 'left',
-//       headerAlign: 'center',
-//       editable: false,
-//     },
-//     getActions: (params) => {
-//     const isInEditMode = rowModesModel[params.id]?.mode === GridRowModes.Edit;
-//
-//     if (isInEditMode) {
-//       return [
-//         <GridActionsCellItem
-//             icon={<SaveIcon />}
-//             label="Save"
-//             sx={{
-//               color: 'primary.main',
-//             }}
-//             onClick={() => handleSaveClick(params.row)}
-//         />,
-//         <GridActionsCellItem
-//             icon={<CancelIcon />}
-//             label="Cancel"
-//             className="textPrimary"
-//             onClick={handleCancelClick(params.id)}
-//             color="inherit"
-//         />,
-//       ];
-//     }
-//
-//     return [
-//       <GridActionsCellItem
-//           icon={<EditIcon />}
-//           label="Edit"
-//           className="textPrimary"
-//           onClick={() => handleEditClick(params)}
-//           color="inherit"
-//       />,
-//       <GridActionsCellItem
-//           icon={<DeleteIcon />}
-//           label="Delete"
-//           onClick={() => handleDeleteClick(params.row.isbn)}
-//           color="inherit"
-//       />,
-//     ];
-//   },
-// },
-// ];
-//
-//   // const columnsWithActions: GridColDef[] = [
-//   //   ...columns,
-//   //   {
-//   //     field: 'actions',
-//   //     headerName: 'Actions',
-//   //     width: 120,
-//   //     renderCell: (params) => (
-//   //       <>
-//   //         <IconButton
-//   //           aria-label="edit"
-//   //           size="small"
-//   //
-//   //           //onClick={() => handleSaveClick(params.row as BookDto)}
-//   //         >
-//   //           <EditIcon />
-//   //         </IconButton>
-//   //         <IconButton
-//   //           aria-label="delete"
-//   //           size="small"
-//   //           onClick={() => handleDeleteClick(params.row.id)}
-//   //         >
-//   //           <DeleteIcon />
-//   //         </IconButton>
-//   //       </>
-//   //     ),
-//   //   },
-//   // ];
-//
-//   return (
-//     <div>
-//       <MenuAppBar title={'all books'} />
-//
-//       <Paper sx={{ height: 500, width: '100%', marginBottom: '20px' }}>
-//         <DataGrid
-//           rows={books}
-//           columns={columnsWithActions}
-//           editMode="row"
-//           rowModesModel={rowModesModel}
-//           onRowModesModelChange={handleRowModesModelChange}
-//           onRowEditStop={handleRowEditStop}
-//           processRowUpdate={processRowUpdate}
-//           slots={{
-//             toolbar: EditToolbar as GridSlots['toolbar'],
-//           }}
-//           slotProps={{
-//             toolbar: { setBooks, setRowModesModel },
-//           }}
-//         />
-//       </Paper>
-//
-//       <div style={{ textAlign: 'center' }}>
-//         <Button
-//           variant="contained"
-//           color="primary"
-//           component={Link}
-//           to="add"
-//           startIcon={<AddIcon />}
-//           sx={{ m: 1 }}
-//         >
-//           Add Book
-//         </Button>
-//       </div>
-//     </div>
-//   );
-// }

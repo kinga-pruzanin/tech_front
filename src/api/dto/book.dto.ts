@@ -8,4 +8,5 @@ export class BookDto {
   availableCopies: number | undefined;
   deleted: boolean | undefined;
   isNew?: boolean;
+  actions?: undefined;
 }

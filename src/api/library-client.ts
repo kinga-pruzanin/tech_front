@@ -107,6 +107,26 @@ export class LibraryClient {
     }
   }
 
+  public async getId() {
+    try {
+      const response = await this.client.get('/user/me/id');
+
+      return {
+        success: true,
+        data: response.data,
+        statusCode: response.status,
+      };
+    } catch (error) {
+      const axiosError = error as AxiosError<Error>;
+
+      return {
+        success: false,
+        data: null,
+        statusCode: axiosError.response?.status || 0,
+      };
+    }
+  }
+
   public async deleteBook(
     isbn: string,
   ): Promise<{ data: null; success: boolean; statusCode: number }> {
@@ -158,6 +178,26 @@ export class LibraryClient {
   public async addBook(book: BookDto): Promise<ClientResponse<BookDto | null>> {
     try {
       const response = await this.client.post('/book/add', book);
+
+      return {
+        success: true,
+        data: response.data,
+        statusCode: response.status,
+      };
+    } catch (error) {
+      const axiosError = error as AxiosError<Error>;
+
+      return {
+        success: false,
+        data: null,
+        statusCode: axiosError.response?.status || 0,
+      };
+    }
+  }
+
+  public async acceptLoan(id: number): Promise<ClientResponse<LoanDto | null>> {
+    try {
+      const response = await this.client.put(`/loan/accept/${id}`);
 
       return {
         success: true,

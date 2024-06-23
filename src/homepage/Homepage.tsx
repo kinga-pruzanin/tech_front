@@ -44,6 +44,22 @@ function HomePage() {
         >
           Add user
         </Button>
+        <Button
+          variant="contained"
+          component={Link}
+          to="users/books"
+          sx={{ m: 1 }}
+        >
+          User books
+        </Button>
+        <Button
+          variant="contained"
+          component={Link}
+          to="users/loans"
+          sx={{ m: 1 }}
+        >
+          User loans
+        </Button>
       </Box>
       <Outlet />
     </Box>

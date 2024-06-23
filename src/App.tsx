@@ -8,11 +8,12 @@ import { Route, Navigate, BrowserRouter } from 'react-router-dom';
 import { Routes } from 'react-router-dom';
 import Homepage from './homepage/Homepage';
 import ApiProvider from './api/ApiProvider';
-import AddBook from './add-book/AddBook';
 import AddLoan from './add-loan/AddLoan';
 import AddUser from './add-user/AddUser';
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
+import UserBooks from './user-books/UserBooks';
+import UserLoans from './user-loans/UserLoans';
 
 function App() {
   return (
@@ -25,7 +26,8 @@ function App() {
             <Route path="/home" element={<Homepage />} />
             <Route path="/home/books" element={<AllBooks />} />
             <Route path="/home/loans" element={<Loans />} />
-            <Route path="/home/books/add" element={<AddBook />} />
+            <Route path="/home/users/books" element={<UserBooks />} />
+            <Route path="/home/users/loans" element={<UserLoans />} />
             <Route path="/home/loans/add" element={<AddLoan />} />
             <Route path="/home/users/add" element={<AddUser />} />
           </Routes>

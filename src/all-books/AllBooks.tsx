@@ -171,10 +171,8 @@ export default function AllBooks() {
     const updatedRow = { ...newRow, isNew: false };
     let response;
 
-    // Log newRow data before validation
     console.log('Row before validation:', newRow);
 
-    // Validate required fields
     if (!newRow.isbn || !newRow.title || !newRow.author) {
       console.error('ISBN, title, and author are required fields.');
       return newRow; // Return the original row to prevent losing data

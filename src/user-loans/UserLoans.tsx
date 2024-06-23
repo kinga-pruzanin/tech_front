@@ -1,5 +1,4 @@
 import * as React from 'react';
-import './Loans.css';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -40,21 +39,42 @@ const formatDate = (dateArray: number[] | null): string => {
   return date.toLocaleDateString('en-GB');
 };
 
-export default function Loans() {
+export default function UserLoans() {
   const apiClient = useApi();
 
   const [loans, setLoans] = React.useState<LoanDto[]>([]);
+  const [userId, setUserId] = React.useState<number | null>(0);
 
   React.useEffect(() => {
-    apiClient.getAllLoans().then((response) => {
+    apiClient.getId().then((response) => {
       if (response.success && response.data !== null) {
-        const loansArray = Array.isArray(response.data)
-          ? response.data
-          : [response.data];
-        setLoans(loansArray);
+        console.log(response.data);
+        setUserId(response.data);
       }
     });
   }, [apiClient]);
+
+  React.useEffect(() => {
+    const fetchLoans = async () => {
+      try {
+        const response = await apiClient.getAllLoans();
+        if (response.success && response.data !== null) {
+          const loansArray = Array.isArray(response.data)
+            ? response.data.filter((loan) => loan.user.id === userId)
+            : [response.data].filter(
+                (loan) => loan.user?.id === userId?.toString(),
+              );
+          setLoans(loansArray);
+        }
+      } catch (error) {
+        console.error('Error fetching loans:', error);
+      }
+    };
+
+    if (userId !== null) {
+      fetchLoans();
+    }
+  }, [apiClient, userId]);
 
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);

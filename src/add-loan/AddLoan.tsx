@@ -13,6 +13,7 @@ export default function AddLoan() {
 
   const handleAddLoan = async () => {
     const response = await apiClient.addLoan({
+      id: 0,
       loanDate: '',
       loanEnd: '',
       returnDate: '',
@@ -24,6 +25,7 @@ export default function AddLoan() {
         id: bookId,
         title: '',
       },
+      accepted: false,
     });
 
     try {

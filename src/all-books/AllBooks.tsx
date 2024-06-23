@@ -18,10 +18,12 @@ import {
   GridRowId,
   GridRowEditStopReasons,
   GridSlots,
+  GridToolbarQuickFilter,
 } from '@mui/x-data-grid';
 import { randomId } from '@mui/x-data-grid-generator';
 import { useApi } from '../api/ApiProvider';
 import { BookDto } from '../api/dto/book.dto';
+import MenuAppBar from '../app-bar/MenuAppBar';
 
 interface EditToolbarProps {
   setRows: (newRows: (oldRows: GridRowsProp) => GridRowsProp) => void;
@@ -60,6 +62,14 @@ function EditToolbar(props: EditToolbarProps) {
       <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
         Add record
       </Button>
+      <GridToolbarQuickFilter
+        quickFilterParser={(searchInput: string) =>
+          searchInput
+            .split(',')
+            .map((value) => value.trim())
+            .filter((value) => value !== '')
+        }
+      />
     </GridToolbarContainer>
   );
 }
@@ -341,33 +351,36 @@ export default function AllBooks() {
   ];
 
   return (
-    <Box
-      sx={{
-        height: 500,
-        width: '100%',
-        '& .actions': {
-          color: 'text.secondary',
-        },
-        '& .textPrimary': {
-          color: 'text.primary',
-        },
-      }}
-    >
-      <DataGrid
-        rows={rows}
-        columns={columns}
-        editMode="row"
-        rowModesModel={rowModesModel}
-        onRowModesModelChange={handleRowModesModelChange}
-        onRowEditStop={handleRowEditStop}
-        processRowUpdate={processRowUpdate}
-        slots={{
-          toolbar: EditToolbar as GridSlots['toolbar'],
+    <div>
+      <MenuAppBar title={'Loans'} />
+      <Box
+        sx={{
+          height: 500,
+          width: '100%',
+          '& .actions': {
+            color: 'text.secondary',
+          },
+          '& .textPrimary': {
+            color: 'text.primary',
+          },
         }}
-        slotProps={{
-          toolbar: { setRows, setRowModesModel },
-        }}
-      />
-    </Box>
+      >
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          editMode="row"
+          rowModesModel={rowModesModel}
+          onRowModesModelChange={handleRowModesModelChange}
+          onRowEditStop={handleRowEditStop}
+          processRowUpdate={processRowUpdate}
+          slots={{
+            toolbar: EditToolbar as GridSlots['toolbar'],
+          }}
+          slotProps={{
+            toolbar: { setRows, setRowModesModel },
+          }}
+        />
+      </Box>
+    </div>
   );
 }

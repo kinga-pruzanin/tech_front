@@ -24,6 +24,14 @@ import { randomId } from '@mui/x-data-grid-generator';
 import { useApi } from '../api/ApiProvider';
 import { BookDto } from '../api/dto/book.dto';
 import MenuAppBar from '../app-bar/MenuAppBar';
+import backgroundImage from '../Klosterbibliothek_cStefan-Leitner-1920x1368.jpg';
+import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from '@mui/material';
 
 interface EditToolbarProps {
   setRows: (newRows: (oldRows: GridRowsProp) => GridRowsProp) => void;
@@ -58,10 +66,9 @@ function EditToolbar(props: EditToolbarProps) {
   };
 
   return (
-    <GridToolbarContainer>
-      <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
-        Add record
-      </Button>
+    <GridToolbarContainer
+      sx={{ display: 'flex', justifyContent: 'space-between' }}
+    >
       <GridToolbarQuickFilter
         quickFilterParser={(searchInput: string) =>
           searchInput
@@ -70,6 +77,9 @@ function EditToolbar(props: EditToolbarProps) {
             .filter((value) => value !== '')
         }
       />
+      <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
+        Add record
+      </Button>
     </GridToolbarContainer>
   );
 }
@@ -80,6 +90,15 @@ export default function AllBooks() {
   );
   const apiClient = useApi();
   const [rows, setRows] = React.useState<BookDto[]>([]);
+  const [open, setOpen] = React.useState(false);
+
+  const handleClickOpen = () => {
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+  };
 
   React.useEffect(() => {
     fetchBooks();
@@ -118,7 +137,6 @@ export default function AllBooks() {
 
     if (!book) return;
 
-    // Process the row update
     await processRowUpdate(book);
 
     setRowModesModel({
@@ -175,7 +193,14 @@ export default function AllBooks() {
 
     if (!newRow.isbn || !newRow.title || !newRow.author) {
       console.error('ISBN, title, and author are required fields.');
-      return newRow; // Return the original row to prevent losing data
+      return newRow;
+    }
+
+    const regex = /^\d{13}$/;
+    if (!regex.test(newRow.isbn)) {
+      handleClickOpen();
+      console.error('ISBN must contain exactly 13 digits.');
+      return newRow;
     }
 
     try {
@@ -228,7 +253,7 @@ export default function AllBooks() {
       return updatedRow;
     } catch (error) {
       console.error('Error processing book:', error);
-      return newRow; // Return the original row if there was an error
+      return newRow;
     }
   };
 
@@ -241,7 +266,7 @@ export default function AllBooks() {
       field: 'isbn',
       headerName: 'ISBN',
       type: 'string',
-      width: 80,
+      width: 180,
       align: 'left',
       headerAlign: 'center',
       editable: true,
@@ -250,7 +275,7 @@ export default function AllBooks() {
       field: 'title',
       headerName: 'Title',
       type: 'string',
-      width: 80,
+      width: 180,
       align: 'left',
       headerAlign: 'center',
       editable: true,
@@ -259,7 +284,7 @@ export default function AllBooks() {
       field: 'author',
       headerName: 'Author',
       type: 'string',
-      width: 80,
+      width: 180,
       align: 'left',
       headerAlign: 'center',
       editable: true,
@@ -268,7 +293,7 @@ export default function AllBooks() {
       field: 'publisher',
       headerName: 'Publisher',
       type: 'string',
-      width: 80,
+      width: 180,
       align: 'left',
       headerAlign: 'center',
       editable: true,
@@ -277,7 +302,7 @@ export default function AllBooks() {
       field: 'publishYear',
       headerName: 'Publish year',
       type: 'number',
-      width: 80,
+      width: 180,
       align: 'left',
       headerAlign: 'center',
       editable: true,
@@ -286,7 +311,7 @@ export default function AllBooks() {
       field: 'availableCopies',
       headerName: 'Available copies',
       type: 'number',
-      width: 80,
+      width: 180,
       align: 'left',
       headerAlign: 'center',
       editable: true,
@@ -295,7 +320,7 @@ export default function AllBooks() {
       field: 'deleted',
       headerName: 'No longer available',
       type: 'string',
-      width: 80,
+      width: 180,
       align: 'left',
       headerAlign: 'center',
       editable: false,
@@ -350,34 +375,67 @@ export default function AllBooks() {
 
   return (
     <div>
-      <MenuAppBar title={'Loans'} />
+      <MenuAppBar title={'All books'} />
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {'Failed to add a book'}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            The new ISBN number must contain 13 digits. If you were assigned
+            10-digit ISBNs or else, you can convert them to the 13-digit format
+            at the converter found on the ISBN website.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Close</Button>
+        </DialogActions>
+      </Dialog>
       <Box
         sx={{
-          height: 500,
-          width: '100%',
-          '& .actions': {
-            color: 'text.secondary',
-          },
-          '& .textPrimary': {
-            color: 'text.primary',
-          },
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          padding: '20px',
         }}
       >
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          editMode="row"
-          rowModesModel={rowModesModel}
-          onRowModesModelChange={handleRowModesModelChange}
-          onRowEditStop={handleRowEditStop}
-          processRowUpdate={processRowUpdate}
-          slots={{
-            toolbar: EditToolbar as GridSlots['toolbar'],
+        <Box
+          sx={{
+            height: '85vh',
+            width: '100%',
+            '& .actions': {
+              color: 'text.secondary',
+            },
+            '& .textPrimary': {
+              color: 'text.primary',
+            },
           }}
-          slotProps={{
-            toolbar: { setRows, setRowModesModel },
-          }}
-        />
+        >
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            editMode="row"
+            rowModesModel={rowModesModel}
+            onRowModesModelChange={handleRowModesModelChange}
+            onRowEditStop={handleRowEditStop}
+            processRowUpdate={processRowUpdate}
+            slots={{
+              toolbar: EditToolbar as GridSlots['toolbar'],
+            }}
+            slotProps={{
+              toolbar: { setRows, setRowModesModel },
+            }}
+            sx={{ backgroundColor: '#fff' }}
+          />
+        </Box>
       </Box>
     </div>
   );

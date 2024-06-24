@@ -7,6 +7,7 @@ import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 
 interface ButtonAppBarProps {
   title: string;
@@ -17,6 +18,10 @@ export default function ButtonAppBar({ title }: ButtonAppBarProps) {
 
   const changeLanguage = (lng: string | undefined) => {
     i18n.changeLanguage(lng);
+  };
+
+  const handleLogout = () => {
+    window.location.href = 'http://localhost:3000/login';
   };
 
   return (
@@ -35,13 +40,15 @@ export default function ButtonAppBar({ title }: ButtonAppBarProps) {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             {t(title)}
           </Typography>
-          <Button color="inherit" onClick={() => changeLanguage('en')}>
-            English
+          {/*<Button color="inherit" onClick={() => changeLanguage('en')}>*/}
+          {/*  English*/}
+          {/*</Button>*/}
+          {/*<Button color="inherit" onClick={() => changeLanguage('pl')}>*/}
+          {/*  Polski*/}
+          {/*</Button>*/}
+          <Button color="inherit" onClick={() => handleLogout()}>
+            {t('log out')}
           </Button>
-          <Button color="inherit" onClick={() => changeLanguage('pl')}>
-            Polski
-          </Button>
-          <Button color="inherit">{t('log out')}</Button>
         </Toolbar>
       </AppBar>
     </Box>

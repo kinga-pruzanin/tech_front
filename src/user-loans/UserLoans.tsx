@@ -10,11 +10,13 @@ import TableRow from '@mui/material/TableRow';
 import MenuAppBar from '../app-bar/MenuAppBar';
 import { useApi } from '../api/ApiProvider';
 import { LoanDto } from '../api/dto/loan.dto';
-import { Button } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Button, Snackbar } from '@mui/material';
+import { useState } from 'react';
+import backgroundImage from '../Klosterbibliothek_cStefan-Leitner-1920x1368.jpg';
+import Box from '@mui/material/Box';
 
 interface Column {
-  id: 'loanDate' | 'loanEnd' | 'returnDate' | 'user' | 'book' | 'actions';
+  id: 'loanDate' | 'loanEnd' | 'returnDate' | 'book' | 'actions';
   label: string;
   minWidth?: number;
   align?: 'right';
@@ -25,7 +27,6 @@ const columns: readonly Column[] = [
   { id: 'loanDate', label: 'Rental start date', minWidth: 170 },
   { id: 'loanEnd', label: 'Rental end date', minWidth: 100 },
   { id: 'returnDate', label: 'Date of return', minWidth: 170 },
-  { id: 'user', label: 'User', minWidth: 170 },
   { id: 'book', label: 'Book title', minWidth: 170 },
   { id: 'actions', label: 'Actions', minWidth: 100 },
 ];
@@ -44,6 +45,19 @@ export default function UserLoans() {
 
   const [loans, setLoans] = React.useState<LoanDto[]>([]);
   const [userId, setUserId] = React.useState<number | null>(0);
+  const [snackbarText, setSnackbarText] = useState('');
+  const [open, setOpen] = React.useState(false);
+
+  const handleClose = (
+    event: React.SyntheticEvent | Event,
+    reason?: string,
+  ) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setOpen(false);
+  };
 
   React.useEffect(() => {
     apiClient.getId().then((response) => {
@@ -90,121 +104,145 @@ export default function UserLoans() {
     setPage(0);
   };
 
-  const handleAccept = async (id: number) => {
+  const handleReturn = async (id: number) => {
     try {
-      const response = await apiClient.acceptLoan(id);
+      const response = await apiClient.returnLoan(id);
+
+      const handleClick = () => {
+        setOpen(true);
+        if (response.success) {
+          setSnackbarText('Book successfully returned!');
+        } else {
+          setSnackbarText('Failed to return a book');
+        }
+      };
+
       if (response.success) {
-        console.log('Loan accepted successfully:', response.data);
+        handleClick();
+        console.log('Loan returned successfully:', response.data);
+        setLoans((prevLoans) =>
+          prevLoans.map((loan) =>
+            loan.id === id
+              ? { ...loan, returnDate: response.data?.returnDate }
+              : loan,
+          ),
+        );
       } else {
+        handleClick();
         console.error(
-          'Failed to accept loan. Status code:',
+          'Failed to return loan. Status code:',
           response.statusCode,
         );
       }
     } catch (error) {
-      console.error('Error accepting loan:', error);
+      console.error('Error returning loan:', error);
     }
   };
 
   return (
     <div>
-      <MenuAppBar title={'Loans'} />
-      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-        <h1>All Loans</h1>
-        <TableContainer sx={{ maxHeight: 440 }}>
-          <Table stickyHeader aria-label="sticky table">
-            <TableHead>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableCell
-                    key={column.id}
-                    align={column.align || 'left'}
-                    style={{
-                      minWidth: column.minWidth,
-                      fontWeight: 'bold',
-                      textAlign: 'center',
-                    }}
-                  >
-                    {column.label}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loans
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((loan, index) => {
-                  return (
-                    <TableRow hover role="checkbox" tabIndex={-1} key={index}>
-                      {columns.map((column) => {
-                        if (column.id === 'actions') {
+      <MenuAppBar title={'Book rentals'} />
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          padding: '20px',
+        }}
+      >
+        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+          <TableContainer sx={{ maxHeight: '80vh' }}>
+            <Table stickyHeader aria-label="sticky table">
+              <TableHead>
+                <TableRow>
+                  {columns.map((column) => (
+                    <TableCell
+                      key={column.id}
+                      align={column.align || 'left'}
+                      style={{
+                        minWidth: column.minWidth,
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {column.label}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loans
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((loan, index) => {
+                    return (
+                      <TableRow hover role="checkbox" tabIndex={-1} key={index}>
+                        {columns.map((column) => {
+                          if (column.id === 'actions') {
+                            return (
+                              <TableCell
+                                key={column.id}
+                                align={column.align || 'left'}
+                              >
+                                {loan.returnDate === null &&
+                                  loan.accepted === true &&
+                                  loan.id !== undefined && (
+                                    <Button
+                                      variant="contained"
+                                      color="primary"
+                                      onClick={() => handleReturn(loan.id!)}
+                                    >
+                                      Return
+                                    </Button>
+                                  )}
+                              </TableCell>
+                            );
+                          }
+
+                          let value: any;
+                          if (column.id === 'book') {
+                            value = loan.book?.title;
+                          } else {
+                            value = loan[column.id];
+                          }
                           return (
                             <TableCell
                               key={column.id}
                               align={column.align || 'left'}
                             >
-                              {!loan.accepted && loan.id !== undefined && (
-                                <Button
-                                  variant="contained"
-                                  color="primary"
-                                  onClick={() => handleAccept(loan.id!)}
-                                >
-                                  Accept
-                                </Button>
-                              )}
+                              {column.format
+                                ? column.format(value)
+                                : typeof value === 'object'
+                                  ? formatDate(value)
+                                  : value}
                             </TableCell>
                           );
-                        }
-
-                        let value: any;
-                        if (column.id === 'user') {
-                          value = loan.user?.fullUsername;
-                        } else if (column.id === 'book') {
-                          value = loan.book?.title;
-                        } else {
-                          value = loan[column.id];
-                        }
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align || 'left'}
-                          >
-                            {column.format
-                              ? column.format(value)
-                              : typeof value === 'object'
-                                ? formatDate(value)
-                                : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
-          component="div"
-          count={loans.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
+                        })}
+                      </TableRow>
+                    );
+                  })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 100]}
+            component="div"
+            count={loans.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Paper>
+        <Snackbar
+          open={open}
+          autoHideDuration={3000}
+          onClose={handleClose}
+          message={snackbarText}
         />
-      </Paper>
-      <div style={{ textAlign: 'center', marginTop: '20px' }}>
-        {' '}
-        <Button
-          variant="contained"
-          color="primary"
-          component={Link}
-          to="add"
-          sx={{ m: 1 }}
-        >
-          Add loan
-        </Button>
-      </div>
+      </Box>
     </div>
   );
 }

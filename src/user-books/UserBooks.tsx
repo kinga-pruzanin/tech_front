@@ -10,8 +10,12 @@ import TableRow from '@mui/material/TableRow';
 import MenuAppBar from '../app-bar/MenuAppBar';
 import { BookDto } from '../api/dto/book.dto';
 import { useApi } from '../api/ApiProvider';
-import { Button } from '@mui/material';
+import { Button, Snackbar } from '@mui/material';
 import { LoanDto } from '../api/dto/loan.dto';
+import { useState } from 'react';
+import backgroundImage from '../Klosterbibliothek_cStefan-Leitner-1920x1368.jpg';
+import Box from '@mui/material/Box';
+//import SearchBar from 'material-ui-search-bar';
 
 interface Column {
   id:
@@ -39,6 +43,20 @@ const columns: readonly Column[] = [
 ];
 
 export default function UserBooks() {
+  const [snackbarText, setSnackbarText] = useState('');
+  const [open, setOpen] = React.useState(false);
+
+  const handleClose = (
+    event: React.SyntheticEvent | Event,
+    reason?: string,
+  ) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setOpen(false);
+  };
+
   const apiClient = useApi();
 
   const [books, setBooks] = React.useState<BookDto[]>([]);
@@ -96,103 +114,131 @@ export default function UserBooks() {
         },
         loanDate: '',
         loanEnd: '',
-        accepted: false, // Initial value for accepted
+        accepted: false,
       };
 
-      // Send loan request to backend
       const response = await apiClient.addLoan(loanRequest);
 
+      const handleClick = () => {
+        setOpen(true);
+        if (response.success) {
+          setSnackbarText('Rental successfully requested!');
+        } else {
+          setSnackbarText('Failed to send request');
+        }
+      };
+
       if (response.success) {
+        handleClick();
         console.log('Loan requested successfully:', response.data);
-        // Handle success scenario here
       } else {
-        console.error(
-          'Failed to request loan. Status code:',
-          response.statusCode,
-        );
-        // Handle failure scenario here
+        handleClick();
+        console.error('Failed to request loan. Status code:');
       }
     } catch (error) {
       console.error('Error requesting loan:', error);
-      // Handle error scenario here
     }
   };
 
   return (
     <div>
       <MenuAppBar title={'Books'} />
-
-      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-        <h1>All Books</h1>
-        <TableContainer sx={{ maxHeight: 440 }}>
-          <Table stickyHeader aria-label="sticky table">
-            <TableHead>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableCell
-                    key={column.id}
-                    align={column.align}
-                    style={{
-                      minWidth: column.minWidth,
-                      fontWeight: 'bold',
-                      textAlign: 'center',
-                    }}
-                  >
-                    {column.label}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {books
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((book) => {
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={book.isbn}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          padding: '20px',
+        }}
+      >
+        {/*<SearchBar*/}
+        {/*  value={this.state.value}*/}
+        {/*  onChange={(newValue) => this.setState({ value: newValue })}*/}
+        {/*  onRequestSearch={() => doSomethingWith(this.state.value)}*/}
+        {/*/>*/}
+        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+          {/*<h1>All Books</h1>*/}
+          <TableContainer sx={{ maxHeight: '80vh' }}>
+            <Table stickyHeader aria-label="sticky table">
+              <TableHead>
+                <TableRow>
+                  {columns.map((column) => (
+                    <TableCell
+                      key={column.id}
+                      align={column.align}
+                      style={{
+                        minWidth: column.minWidth,
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                      }}
                     >
-                      {columns.map((column) => {
-                        const value = book[column.id];
-                        if (column.id === 'actions') {
+                      {column.label}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {books
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((book) => {
+                    return (
+                      <TableRow
+                        hover
+                        role="checkbox"
+                        tabIndex={-1}
+                        key={book.isbn}
+                      >
+                        {columns.map((column) => {
+                          const value = book[column.id];
+                          if (column.id === 'actions') {
+                            return (
+                              <TableCell key={column.id} align={column.align}>
+                                <Button
+                                  variant="contained"
+                                  color="secondary"
+                                  onClick={() => handleBorrow(book)}
+                                >
+                                  Borrow
+                                </Button>
+                              </TableCell>
+                            );
+                          }
                           return (
                             <TableCell key={column.id} align={column.align}>
-                              <Button
-                                variant="contained"
-                                color="secondary"
-                                onClick={() => handleBorrow(book)}
-                              >
-                                Borrow
-                              </Button>
+                              {column.format && typeof value === 'number'
+                                ? column.format(value)
+                                : value}
                             </TableCell>
                           );
-                        }
-                        return (
-                          <TableCell key={column.id} align={column.align}>
-                            {column.format && typeof value === 'number'
-                              ? column.format(value)
-                              : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
-          component="div"
-          count={books.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
+                        })}
+                      </TableRow>
+                    );
+                  })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 100]}
+            component="div"
+            count={books.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Paper>
+        <div>
+          <Snackbar
+            open={open}
+            autoHideDuration={3000}
+            onClose={handleClose}
+            message={snackbarText}
+          />
+        </div>
+      </Box>
     </div>
   );
 }

@@ -215,6 +215,26 @@ export class LibraryClient {
     }
   }
 
+  public async returnLoan(id: number): Promise<ClientResponse<LoanDto | null>> {
+    try {
+      const response = await this.client.put(`/loan/return/${id}`);
+
+      return {
+        success: true,
+        data: response.data,
+        statusCode: response.status,
+      };
+    } catch (error) {
+      const axiosError = error as AxiosError<Error>;
+
+      return {
+        success: false,
+        data: null,
+        statusCode: axiosError.response?.status || 0,
+      };
+    }
+  }
+
   public async addLoan(loan: LoanDto): Promise<ClientResponse<LoanDto | null>> {
     try {
       const response = await this.client.post('/loan/add', loan);

@@ -11,8 +11,10 @@ import TableRow from '@mui/material/TableRow';
 import MenuAppBar from '../app-bar/MenuAppBar';
 import { useApi } from '../api/ApiProvider';
 import { LoanDto } from '../api/dto/loan.dto';
-import { Button } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Button, Snackbar } from '@mui/material';
+import { useState } from 'react';
+import backgroundImage from '../Klosterbibliothek_cStefan-Leitner-1920x1368.jpg';
+import Box from '@mui/material/Box';
 
 interface Column {
   id: 'loanDate' | 'loanEnd' | 'returnDate' | 'user' | 'book' | 'actions';
@@ -41,6 +43,20 @@ const formatDate = (dateArray: number[] | null): string => {
 };
 
 export default function Loans() {
+  const [snackbarText, setSnackbarText] = useState('');
+  const [open, setOpen] = React.useState(false);
+
+  const handleClose = (
+    event: React.SyntheticEvent | Event,
+    reason?: string,
+  ) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setOpen(false);
+  };
+
   const apiClient = useApi();
 
   const [loans, setLoans] = React.useState<LoanDto[]>([]);
@@ -73,9 +89,21 @@ export default function Loans() {
   const handleAccept = async (id: number) => {
     try {
       const response = await apiClient.acceptLoan(id);
+
+      const handleClick = () => {
+        setOpen(true);
+        if (response.success) {
+          setSnackbarText('Rental successfully accepted!');
+        } else {
+          setSnackbarText('Failed to accept request');
+        }
+      };
+
       if (response.success) {
+        handleClick();
         console.log('Loan accepted successfully:', response.data);
       } else {
+        handleClick();
         console.error(
           'Failed to accept loan. Status code:',
           response.statusCode,
@@ -88,103 +116,111 @@ export default function Loans() {
 
   return (
     <div>
-      <MenuAppBar title={'Loans'} />
-      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-        <h1>All Loans</h1>
-        <TableContainer sx={{ maxHeight: 440 }}>
-          <Table stickyHeader aria-label="sticky table">
-            <TableHead>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableCell
-                    key={column.id}
-                    align={column.align || 'left'}
-                    style={{
-                      minWidth: column.minWidth,
-                      fontWeight: 'bold',
-                      textAlign: 'center',
-                    }}
-                  >
-                    {column.label}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loans
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((loan, index) => {
-                  return (
-                    <TableRow hover role="checkbox" tabIndex={-1} key={index}>
-                      {columns.map((column) => {
-                        if (column.id === 'actions') {
+      <MenuAppBar title={'All loans'} />
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          padding: '20px',
+        }}
+      >
+        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+          {/*<h1>All Loans</h1>*/}
+          <TableContainer sx={{ maxHeight: '80vh' }}>
+            <Table stickyHeader aria-label="sticky table">
+              <TableHead>
+                <TableRow>
+                  {columns.map((column) => (
+                    <TableCell
+                      key={column.id}
+                      align={column.align || 'left'}
+                      style={{
+                        minWidth: column.minWidth,
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {column.label}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loans
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((loan, index) => {
+                    return (
+                      <TableRow hover role="checkbox" tabIndex={-1} key={index}>
+                        {columns.map((column) => {
+                          if (column.id === 'actions') {
+                            return (
+                              <TableCell
+                                key={column.id}
+                                align={column.align || 'left'}
+                              >
+                                {!loan.accepted && loan.id !== undefined && (
+                                  <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={() => handleAccept(loan.id!)}
+                                  >
+                                    Accept
+                                  </Button>
+                                )}
+                              </TableCell>
+                            );
+                          }
+
+                          let value: any;
+                          if (column.id === 'user') {
+                            value = loan.user?.fullUsername;
+                          } else if (column.id === 'book') {
+                            value = loan.book?.title;
+                          } else {
+                            value = loan[column.id];
+                          }
                           return (
                             <TableCell
                               key={column.id}
                               align={column.align || 'left'}
                             >
-                              {!loan.accepted && loan.id !== undefined && (
-                                <Button
-                                  variant="contained"
-                                  color="primary"
-                                  onClick={() => handleAccept(loan.id!)}
-                                >
-                                  Accept
-                                </Button>
-                              )}
+                              {column.format
+                                ? column.format(value)
+                                : typeof value === 'object'
+                                  ? formatDate(value)
+                                  : value}
                             </TableCell>
                           );
-                        }
-
-                        let value: any;
-                        if (column.id === 'user') {
-                          value = loan.user?.fullUsername;
-                        } else if (column.id === 'book') {
-                          value = loan.book?.title;
-                        } else {
-                          value = loan[column.id];
-                        }
-                        return (
-                          <TableCell
-                            key={column.id}
-                            align={column.align || 'left'}
-                          >
-                            {column.format
-                              ? column.format(value)
-                              : typeof value === 'object'
-                                ? formatDate(value)
-                                : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
-          component="div"
-          count={loans.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
-      <div style={{ textAlign: 'center', marginTop: '20px' }}>
-        {' '}
-        <Button
-          variant="contained"
-          color="primary"
-          component={Link}
-          to="add"
-          sx={{ m: 1 }}
-        >
-          Add loan
-        </Button>
-      </div>
+                        })}
+                      </TableRow>
+                    );
+                  })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 100]}
+            component="div"
+            count={loans.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Paper>
+        <div>
+          <Snackbar
+            open={open}
+            autoHideDuration={3000}
+            onClose={handleClose}
+            message={snackbarText}
+          />
+        </div>
+      </Box>
     </div>
   );
 }
